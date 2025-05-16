@@ -1,4 +1,4 @@
-FROM --platform=amd64 mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copy csproj and restore dependencies
@@ -7,7 +7,7 @@ RUN dotnet restore "8-ball-pool/8-ball-pool.csproj"
 
 # Copy everything else and build
 COPY . .
-
+RUN dotnet --list-sdks
 # Build the application
 RUN dotnet publish "8-ball-pool/8-ball-pool.csproj" -c Release -o /app/publish
 
