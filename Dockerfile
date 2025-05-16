@@ -1,4 +1,4 @@
-FROM --platform=arm64 mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM --platform=amd64 mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copy csproj and restore dependencies
