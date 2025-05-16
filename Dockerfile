@@ -20,7 +20,7 @@ COPY --from=build /app/publish .
 RUN apt-get update && apt-get install -y postgresql-client curl
 
 # Setup entrypoint script
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+COPY ./docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
 # Set environment variables
