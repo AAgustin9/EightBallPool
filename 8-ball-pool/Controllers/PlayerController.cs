@@ -89,7 +89,9 @@ namespace _8_ball_pool.Controllers
                 Name = player.Name,
                 Ranking = player.Ranking,
                 PreferredCue = player.PreferredCue,
-                ProfilePictureUrl = player.ProfilePictureUrl
+                ProfilePictureUrl = player.ProfilePictureUrl,
+                Wins = player.Wins,
+                Losses = player.Losses
             };
         }
     }

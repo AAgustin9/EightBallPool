@@ -8,6 +8,7 @@ using _8_ball_pool.Models;
 using _8_ball_pool.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 using Match = _8_ball_pool.Models.Match;
 
@@ -20,6 +21,7 @@ namespace EightBallPool.Tests.Services
         private readonly Player _player1;
         private readonly Player _player2;
         private readonly Player _player3;
+        private readonly Mock<IRankingService> _mockRankingService;
 
         public MatchesServiceTests()
         {
@@ -29,12 +31,36 @@ namespace EightBallPool.Tests.Services
                 .Options;
 
             _context = new AppDbContext(options);
-            _service = new MatchesService(_context);
+            _mockRankingService = new Mock<IRankingService>();
+            _service = new MatchesService(_context, _mockRankingService.Object);
 
             // Seed test data
-            _player1 = new Player { Id = 1, Name = "Player 1", ProfilePictureUrl = "url1" };
-            _player2 = new Player { Id = 2, Name = "Player 2", ProfilePictureUrl = "url2" };
-            _player3 = new Player { Id = 3, Name = "Player 3", ProfilePictureUrl = "url3" };
+            _player1 = new Player { 
+                Id = 1, 
+                Name = "Player 1", 
+                ProfilePictureUrl = "url1",
+                Wins = 0,
+                Losses = 0,
+                Ranking = 0
+            };
+            
+            _player2 = new Player { 
+                Id = 2, 
+                Name = "Player 2", 
+                ProfilePictureUrl = "url2",
+                Wins = 0,
+                Losses = 0,
+                Ranking = 0
+            };
+            
+            _player3 = new Player { 
+                Id = 3, 
+                Name = "Player 3", 
+                ProfilePictureUrl = "url3",
+                Wins = 0,
+                Losses = 0,
+                Ranking = 0
+            };
             
             _context.Players.AddRange(_player1, _player2, _player3);
             _context.SaveChanges();
@@ -383,6 +409,75 @@ namespace EightBallPool.Tests.Services
 
             // Assert
             result.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task UpdateMatch_WhenWinnerChanged_UpdatesRankings()
+        {
+            // Arrange
+            var match = new Match
+            {
+                Player1Id = _player1.Id,
+                Player2Id = _player2.Id,
+                StartTime = DateTime.UtcNow.AddHours(-1),
+                TableNumber = 1
+            };
+
+            _context.Matches.Add(match);
+            await _context.SaveChangesAsync();
+
+            var dto = new UpdateMatchDto
+            {
+                WinnerId = _player1.Id,
+                EndTime = DateTime.UtcNow
+            };
+
+            // Act
+            var result = await _service.UpdateMatch(match.Id, dto);
+
+            // Assert
+            result.Should().BeTrue();
+            
+            // Verify ranking service was called
+            _mockRankingService.Verify(
+                r => r.UpdateRankingForMatchAsync(match.Id), 
+                Times.Once
+            );
+        }
+
+        [Fact]
+        public async Task UpdateMatch_WhenWinnerNotChanged_DoesNotUpdateRankings()
+        {
+            // Arrange
+            var match = new Match
+            {
+                Player1Id = _player1.Id,
+                Player2Id = _player2.Id,
+                StartTime = DateTime.UtcNow.AddHours(-1),
+                WinnerId = _player1.Id,
+                EndTime = DateTime.UtcNow,
+                TableNumber = 1
+            };
+
+            _context.Matches.Add(match);
+            await _context.SaveChangesAsync();
+
+            var dto = new UpdateMatchDto
+            {
+                TableNumber = 2 // Only changing table number, not winner
+            };
+
+            // Act
+            var result = await _service.UpdateMatch(match.Id, dto);
+
+            // Assert
+            result.Should().BeTrue();
+            
+            // Verify ranking service was NOT called
+            _mockRankingService.Verify(
+                r => r.UpdateRankingForMatchAsync(It.IsAny<int>()), 
+                Times.Never
+            );
         }
 
         public void Dispose()

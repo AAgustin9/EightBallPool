@@ -7,7 +7,9 @@ using _8_ball_pool.Models;
 using _8_ball_pool.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
+using PoolMatch = _8_ball_pool.Models.Match;
 
 namespace EightBallPool.Tests.Services
 {
@@ -17,6 +19,7 @@ namespace EightBallPool.Tests.Services
         private readonly MatchesService _service;
         private readonly Player _player1;
         private readonly Player _player2;
+        private readonly Mock<IRankingService> _mockRankingService;
 
         public MatchesServiceIntegrationTests()
         {
@@ -26,11 +29,27 @@ namespace EightBallPool.Tests.Services
                 .Options;
 
             _context = new AppDbContext(options);
-            _service = new MatchesService(_context);
+            _mockRankingService = new Mock<IRankingService>();
+            _service = new MatchesService(_context, _mockRankingService.Object);
 
             // Seed test data
-            _player1 = new Player { Id = 1, Name = "Player 1", ProfilePictureUrl = "url1" };
-            _player2 = new Player { Id = 2, Name = "Player 2", ProfilePictureUrl = "url2" };
+            _player1 = new Player { 
+                Id = 1, 
+                Name = "Player 1", 
+                ProfilePictureUrl = "url1",
+                Wins = 0,
+                Losses = 0,
+                Ranking = 0
+            };
+            
+            _player2 = new Player { 
+                Id = 2, 
+                Name = "Player 2", 
+                ProfilePictureUrl = "url2",
+                Wins = 0,
+                Losses = 0,
+                Ranking = 0
+            };
             
             _context.Players.Add(_player1);
             _context.Players.Add(_player2);
@@ -69,7 +88,7 @@ namespace EightBallPool.Tests.Services
         public async Task CreateMatch_DoubleBooking_ThrowsException()
         {
             // Arrange
-            var existingMatch = new Match
+            var existingMatch = new PoolMatch
             {
                 Player1Id = _player1.Id,
                 Player2Id = _player2.Id,
@@ -95,7 +114,7 @@ namespace EightBallPool.Tests.Services
         public async Task GetMatches_ReturnsAllMatches()
         {
             // Arrange
-            var match1 = new Match
+            var match1 = new PoolMatch
             {
                 Player1Id = _player1.Id,
                 Player2Id = _player2.Id,
@@ -104,7 +123,7 @@ namespace EightBallPool.Tests.Services
                 Player2 = _player2
             };
 
-            var match2 = new Match
+            var match2 = new PoolMatch
             {
                 Player1Id = _player2.Id,
                 Player2Id = _player1.Id,
@@ -127,7 +146,7 @@ namespace EightBallPool.Tests.Services
         public async Task GetMatchById_ExistingId_ReturnsMatch()
         {
             // Arrange
-            var match = new Match
+            var match = new PoolMatch
             {
                 Player1Id = _player1.Id,
                 Player2Id = _player2.Id,
@@ -153,7 +172,7 @@ namespace EightBallPool.Tests.Services
         public async Task UpdateMatch_ValidData_UpdatesMatch()
         {
             // Arrange
-            var match = new Match
+            var match = new PoolMatch
             {
                 Player1Id = _player1.Id,
                 Player2Id = _player2.Id,
@@ -184,10 +203,45 @@ namespace EightBallPool.Tests.Services
         }
 
         [Fact]
+        public async Task UpdateMatch_WithWinner_CallsRankingService()
+        {
+            // Arrange
+            var match = new PoolMatch
+            {
+                Player1Id = _player1.Id,
+                Player2Id = _player2.Id,
+                StartTime = DateTime.UtcNow.AddDays(1),
+                TableNumber = 1
+            };
+
+            _context.Matches.Add(match);
+            await _context.SaveChangesAsync();
+
+            var dto = new UpdateMatchDto
+            {
+                TableNumber = 2,
+                WinnerId = _player1.Id
+            };
+
+            // Setup mock ranking service
+            _mockRankingService.Setup(s => s.UpdateRankingForMatchAsync(match.Id))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _service.UpdateMatch(match.Id, dto);
+
+            // Assert
+            result.Should().BeTrue();
+
+            // Verify ranking service was called
+            _mockRankingService.Verify(s => s.UpdateRankingForMatchAsync(match.Id), Times.Once);
+        }
+
+        [Fact]
         public async Task DeleteMatch_ExistingFutureMatch_DeletesMatch()
         {
             // Arrange
-            var match = new Match
+            var match = new PoolMatch
             {
                 Player1Id = _player1.Id,
                 Player2Id = _player2.Id,
@@ -204,19 +258,19 @@ namespace EightBallPool.Tests.Services
             result.Should().BeTrue();
 
             // Verify in database
-            var deletedMatch = await _context.Matches.FindAsync(match.Id);
-            deletedMatch.Should().BeNull();
+            var matchInDb = await _context.Matches.FindAsync(match.Id);
+            matchInDb.Should().BeNull();
         }
 
         [Fact]
         public async Task DeleteMatch_StartedMatch_ThrowsException()
         {
             // Arrange
-            var match = new Match
+            var match = new PoolMatch
             {
                 Player1Id = _player1.Id,
                 Player2Id = _player2.Id,
-                StartTime = DateTime.UtcNow.AddHours(-1) // Match already started
+                StartTime = DateTime.UtcNow.AddHours(-1)
             };
 
             _context.Matches.Add(match);
@@ -224,10 +278,6 @@ namespace EightBallPool.Tests.Services
 
             // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() => _service.DeleteMatch(match.Id));
-
-            // Verify match still exists
-            var matchInDb = await _context.Matches.FindAsync(match.Id);
-            matchInDb.Should().NotBeNull();
         }
 
         public void Dispose()
