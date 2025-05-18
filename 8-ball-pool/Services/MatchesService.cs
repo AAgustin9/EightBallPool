@@ -9,10 +9,12 @@ namespace _8_ball_pool.Services
     public class MatchesService : IMatchesService
     {
         private readonly AppDbContext _context;
+        private readonly IRankingService _rankingService;
 
-        public MatchesService(AppDbContext context)
+        public MatchesService(AppDbContext context, IRankingService rankingService)
         {
             _context = context;
+            _rankingService = rankingService;
         }
 
         public async Task<Match> CreateMatch(CreateMatchDto dto)
@@ -115,11 +117,28 @@ namespace _8_ball_pool.Services
                 match.StartTime = newStart;
             }
 
+            // Track if winner is being assigned or changed
+            bool winnerChanged = false;
+            int? previousWinnerId = match.WinnerId;
+            
             if (dto.EndTime.HasValue) match.EndTime = dto.EndTime;
-            if (dto.WinnerId.HasValue) match.WinnerId = dto.WinnerId;
+            
+            if (dto.WinnerId.HasValue && dto.WinnerId != match.WinnerId)
+            {
+                match.WinnerId = dto.WinnerId;
+                winnerChanged = true;
+            }
+            
             if (dto.TableNumber.HasValue) match.TableNumber = dto.TableNumber;
 
             await _context.SaveChangesAsync();
+            
+            // Update rankings if winner changed
+            if (winnerChanged)
+            {
+                await _rankingService.UpdateRankingForMatchAsync(match.Id);
+            }
+            
             return true;
         }
 

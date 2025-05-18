@@ -40,6 +40,11 @@ builder.Services.AddHealthChecks()
 // App services
 builder.Services.AddScoped<IS3Service, S3Service>();
 builder.Services.AddScoped<IMatchesService, MatchesService>();
+builder.Services.AddScoped<IRankingService, RankingService>();
+
+// Register background service for ranking updates
+builder.Services.AddHostedService<RankingBackgroundService>();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 

@@ -255,5 +255,29 @@ namespace EightBallPool.Tests.Controllers
             var conflictResult = result.Should().BeOfType<ConflictObjectResult>().Subject;
             conflictResult.Value.Should().Be("Cannot delete started match");
         }
+
+        [Fact]
+        public async Task UpdateMatch_WithWinner_UpdatesRankings()
+        {
+            // Arrange
+            var dto = new UpdateMatchDto
+            {
+                WinnerId = 1,
+                EndTime = DateTime.UtcNow
+            };
+
+            _mockMatchesService.Setup(s => s.UpdateMatch(1, It.IsAny<UpdateMatchDto>()))
+                .ReturnsAsync(true);
+
+            // Act
+            var result = await _controller.UpdateMatch(1, dto);
+
+            // Assert
+            result.Should().BeOfType<NoContentResult>();
+            
+            // Verify that the service was called with the winner ID
+            _mockMatchesService.Verify(s => s.UpdateMatch(1, It.Is<UpdateMatchDto>(d => 
+                d.WinnerId == 1 && d.EndTime == dto.EndTime)), Times.Once);
+        }
     }
 } 
