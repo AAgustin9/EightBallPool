@@ -17,10 +17,10 @@ Env.Load();
 // PostgreSQL connection
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                        ?.Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST"))
-                        ?.Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME"))
-                        ?.Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
-                        ?.Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"))
-                        ?.Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT"));
+                       ?.Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME"))
+                       ?.Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
+                       ?.Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"))
+                       ?.Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT"));
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -75,7 +75,7 @@ app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "8 Ball Pool API V1");
-    c.RoutePrefix = string.Empty; // Serve Swagger UI at root
+    c.RoutePrefix = string.Empty;
 });
 
 // Health check endpoint
@@ -103,23 +103,20 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
-// Simple database initialization
+// Apply EF Core migrations
 try
 {
-    Console.WriteLine("Initializing database...");
+    Console.WriteLine("Applying migrations...");
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        
-        // Create database and schema
-        db.Database.EnsureCreated();
-        Console.WriteLine("Database created successfully");
+        db.Database.Migrate(); // <- ESTA ES LA CLAVE
+        Console.WriteLine("Migrations applied successfully");
     }
 }
 catch (Exception ex)
 {
-    // Log the error but don't stop the application
-    Console.WriteLine($"Database initialization error: {ex.Message}");
+    Console.WriteLine($"Database migration error: {ex.Message}");
 }
 
 app.Run();

@@ -7,27 +7,20 @@ RUN dotnet restore "8-ball-pool/8-ball-pool.csproj"
 
 # Copy everything else and build
 COPY . .
-RUN dotnet --list-sdks
-# Build the application
 RUN dotnet publish "8-ball-pool/8-ball-pool.csproj" -c Release -o /app/publish
 
-# Use SDK image for runtime to have EF tools available
-FROM mcr.microsoft.com/dotnet/sdk:9.0
+# Use runtime image (smaller) instead of SDK if EF tools are not needed
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Install PostgreSQL client for database connection checks
-RUN apt-get update && apt-get install -y postgresql-client curl
+# Install PostgreSQL client to use pg_isready
+RUN apt-get update && apt-get install -y postgresql-client && apt-get clean
 
-# Install EF Core tools
-RUN dotnet tool install --global dotnet-ef
-ENV PATH="$PATH:/root/.dotnet/tools"
-
-# Setup entrypoint script
+# Setup entrypoint
 COPY ./docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
-# Set environment variables
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
