@@ -15,7 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 Env.Load();
 
 // PostgreSQL connection
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                        ?.Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST"))
                         ?.Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME"))
                         ?.Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
