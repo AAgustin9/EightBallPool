@@ -15,21 +15,11 @@ var builder = WebApplication.CreateBuilder(args);
 Env.Load();
 
 // PostgreSQL connection
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-// Replace environment variable placeholders in the connection string
-if (connectionString != null)
-{
-    connectionString = connectionString
-        .Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost")
-        .Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME") ?? "pooldb")
-        .Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER") ?? "postgres")
-        .Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "postgres");
-}
-else
-{
-    connectionString = "Host=localhost;Port=5432;Database=pooldb;Username=postgres;Password=postgres";
-}
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
+                       ?.Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST"))
+                        ?.Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME"))
+                        ?.Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
+                        ?.Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"));
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
