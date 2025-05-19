@@ -15,8 +15,12 @@ var builder = WebApplication.CreateBuilder(args);
 Env.Load();
 
 // PostgreSQL connection
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
-                       "Host=localhost;Port=5432;Database=pooldb;Username=postgres;Password=postgres";
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                       ?.Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST"))
+                        ?.Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME"))
+                        ?.Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
+                        ?.Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"))
+                        ?.Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT"));
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -40,6 +44,11 @@ builder.Services.AddHealthChecks()
 // App services
 builder.Services.AddScoped<IS3Service, S3Service>();
 builder.Services.AddScoped<IMatchesService, MatchesService>();
+builder.Services.AddScoped<IRankingService, RankingService>();
+
+// Register background service for ranking updates
+builder.Services.AddHostedService<RankingBackgroundService>();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
