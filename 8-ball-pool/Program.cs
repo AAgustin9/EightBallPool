@@ -19,7 +19,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
                        ?.Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST"))
                         ?.Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME"))
                         ?.Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
-                        ?.Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"));
+                        ?.Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"))
+                        ?.Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT"));
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
