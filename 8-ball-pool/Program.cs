@@ -17,10 +17,10 @@ Env.Load();
 // PostgreSQL connection
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                        ?.Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST"))
-                        ?.Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME"))
-                        ?.Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
-                        ?.Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"))
-                        ?.Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT"));
+                       ?.Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME"))
+                       ?.Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
+                       ?.Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"))
+                       ?.Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT"));
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -75,7 +75,7 @@ app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "8 Ball Pool API V1");
-    c.RoutePrefix = string.Empty; // Serve Swagger UI at root
+    c.RoutePrefix = string.Empty;
 });
 
 // Health check endpoint
@@ -103,43 +103,20 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
-// Database initialization that ensures tables exist
-Console.WriteLine("=== DATABASE INITIALIZATION ===");
-
-// Get the connection string
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-                      ?.Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST"))
-                      ?.Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME"))
-                      ?.Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
-                      ?.Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"))
-                      ?.Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT"));
-
-Console.WriteLine($"Connection string (masked): Host={Environment.GetEnvironmentVariable("DB_HOST")}:****;Database={Environment.GetEnvironmentVariable("DB_NAME")}");
-
-try 
+// Apply EF Core migrations
+try
 {
+    Console.WriteLine("Applying migrations...");
     using (var scope = app.Services.CreateScope())
     {
-        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        
-        // Forcefully drop and recreate the database to ensure schema correctness
-        Console.WriteLine("Dropping and recreating database to ensure correct schema...");
-        context.Database.EnsureDeleted();
-        context.Database.EnsureCreated();
-        
-        // Verify tables exist by trying to access them
-        var playersExist = context.Players.Any() || true; // will throw if table doesn't exist, true to avoid optimizing away
-        var matchesExist = context.Matches.Any() || true; // will throw if table doesn't exist
-        
-        Console.WriteLine("Database schema created successfully. Tables verified.");
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.Migrate(); // <- ESTA ES LA CLAVE
+        Console.WriteLine("Migrations applied successfully");
     }
 }
 catch (Exception ex)
 {
-    Console.WriteLine($"CRITICAL DATABASE ERROR: {ex.Message}");
-    Console.WriteLine(ex.ToString());
-    // In production we would typically throw here to prevent app from starting with corrupt DB
-    // but we'll continue for now
+    Console.WriteLine($"Database migration error: {ex.Message}");
 }
 
 app.Run();
