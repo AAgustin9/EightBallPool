@@ -102,9 +102,39 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
-using (var scope = app.Services.CreateScope())
+
+// Apply database initialization with proper error handling
+try
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    Console.WriteLine("Initializing database...");
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        
+        // Ensure database exists with all tables based on current model
+        Console.WriteLine("Creating database schema...");
+        db.Database.EnsureCreated();
+        
+        // Verify database has the required tables
+        bool hasPlayersTable = false;
+        try {
+            // Simple check to see if table exists
+            hasPlayersTable = db.Players.Any() || true; // Even if empty, this won't throw if table exists
+            Console.WriteLine("Database initialization successful. Players table verified.");
+        }
+        catch (Exception ex) {
+            Console.WriteLine($"Players table not found after initialization: {ex.Message}");
+            throw; // Re-throw to prevent app from starting with incomplete database
+        }
+    }
+    Console.WriteLine("Database initialization completed successfully.");
 }
+catch (Exception ex)
+{
+    Console.WriteLine($"Error initializing database: {ex.Message}");
+    Console.WriteLine($"Details: {ex}");
+    // Re-throw to prevent the application from starting with a bad database state
+    throw;
+}
+
 app.Run();
