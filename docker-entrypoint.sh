@@ -10,5 +10,9 @@ if [ -n "$DB_HOST" ]; then
   echo "PostgreSQL is available!"
 fi
 
+# Apply EF Core migrations
+echo "Applying EF Core migrations..."
+dotnet ef database update --project ./8-ball-pool
+
 # Run the app
 exec dotnet 8-ball-pool.dll
