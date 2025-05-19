@@ -10,10 +10,8 @@ if [ -n "$DB_HOST" ]; then
   echo "PostgreSQL is available!"
 fi
 
-# Apply EF Core migrations
-echo "Applying EF Core migrations..."
-# Using the dll directly as the project is already built
-dotnet ef database update --assembly ./8-ball-pool.dll --startup-assembly ./8-ball-pool.dll
+# Apply migrations programmatically on startup instead of using EF CLI
+echo "Migrations will be applied programmatically on application startup"
 
 # Run the app
 exec dotnet 8-ball-pool.dll
