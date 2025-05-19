@@ -46,8 +46,9 @@ builder.Services.AddScoped<IS3Service, S3Service>();
 builder.Services.AddScoped<IMatchesService, MatchesService>();
 builder.Services.AddScoped<IRankingService, RankingService>();
 
-// Register background service for ranking updates
-builder.Services.AddHostedService<RankingBackgroundService>();
+// Register RankingBackgroundService manually later
+builder.Services.AddSingleton<RankingBackgroundService>();
+builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<RankingBackgroundService>());
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -103,16 +104,20 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
-// Apply EF Core migrations
+// Apply EF Core migrations and delay background service until done
 try
 {
     Console.WriteLine("Applying migrations...");
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Database.Migrate(); // <- ESTA ES LA CLAVE
+        db.Database.Migrate();
         Console.WriteLine("Migrations applied successfully");
     }
+
+    // Start background service after migrations
+    var hostedService = app.Services.GetRequiredService<RankingBackgroundService>();
+    await hostedService.StartAsync(CancellationToken.None);
 }
 catch (Exception ex)
 {

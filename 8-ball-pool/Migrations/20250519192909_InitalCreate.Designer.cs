@@ -12,8 +12,8 @@ using _8_ball_pool.Data;
 namespace _8_ball_pool.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250518161314_AddPlayerRankingStats")]
-    partial class AddPlayerRankingStats
+    [Migration("20250519192909_InitalCreate")]
+    partial class InitalCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
