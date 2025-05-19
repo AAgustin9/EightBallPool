@@ -19,7 +19,6 @@ COPY --from=build /app/publish .
 # Install PostgreSQL client for database connection checks
 RUN apt-get update && apt-get install -y postgresql-client curl
 
-RUN dotnet tool install --global dotnet-ef --version 9.*
 
 # Setup entrypoint script
 COPY ./docker-entrypoint.sh /app/docker-entrypoint.sh
