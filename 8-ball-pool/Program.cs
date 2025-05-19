@@ -22,7 +22,7 @@ if (connectionString != null)
 {
     connectionString = connectionString
         .Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost")
-        .Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT"))
+        .Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT") ?? "5432") 
         .Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME") ?? "pooldb")
         .Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER") ?? "postgres")
         .Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "postgres");
