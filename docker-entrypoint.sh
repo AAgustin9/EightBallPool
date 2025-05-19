@@ -12,7 +12,8 @@ fi
 
 # Apply EF Core migrations
 echo "Applying EF Core migrations..."
-dotnet ef database update --project ./8-ball-pool
+# Using the dll directly as the project is already built
+dotnet ef database update --assembly ./8-ball-pool.dll --startup-assembly ./8-ball-pool.dll
 
 # Run the app
 exec dotnet 8-ball-pool.dll
