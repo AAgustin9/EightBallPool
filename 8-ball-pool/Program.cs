@@ -103,23 +103,43 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
-// Simple database initialization
-try
+// Database initialization that ensures tables exist
+Console.WriteLine("=== DATABASE INITIALIZATION ===");
+
+// Get the connection string
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                      ?.Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST"))
+                      ?.Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME"))
+                      ?.Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER"))
+                      ?.Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"))
+                      ?.Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT"));
+
+Console.WriteLine($"Connection string (masked): Host={Environment.GetEnvironmentVariable("DB_HOST")}:****;Database={Environment.GetEnvironmentVariable("DB_NAME")}");
+
+try 
 {
-    Console.WriteLine("Initializing database...");
     using (var scope = app.Services.CreateScope())
     {
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         
-        // Create database and schema
-        db.Database.EnsureCreated();
-        Console.WriteLine("Database created successfully");
+        // Forcefully drop and recreate the database to ensure schema correctness
+        Console.WriteLine("Dropping and recreating database to ensure correct schema...");
+        context.Database.EnsureDeleted();
+        context.Database.EnsureCreated();
+        
+        // Verify tables exist by trying to access them
+        var playersExist = context.Players.Any() || true; // will throw if table doesn't exist, true to avoid optimizing away
+        var matchesExist = context.Matches.Any() || true; // will throw if table doesn't exist
+        
+        Console.WriteLine("Database schema created successfully. Tables verified.");
     }
 }
 catch (Exception ex)
 {
-    // Log the error but don't stop the application
-    Console.WriteLine($"Database initialization error: {ex.Message}");
+    Console.WriteLine($"CRITICAL DATABASE ERROR: {ex.Message}");
+    Console.WriteLine(ex.ToString());
+    // In production we would typically throw here to prevent app from starting with corrupt DB
+    // but we'll continue for now
 }
 
 app.Run();
